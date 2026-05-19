@@ -20,12 +20,15 @@ app.get('/', (req, res) => {
 // BAGONG CODE PARA SA GOOGLE SHEETS:
 
 // ILAGAY MO ITO SA IBABAW NG "let model;"
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+let genAI; // I-declare lang muna natin na blangko
 let model;
 const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRg-jxZlm3naMU94SLwrgBJ9oxLS8lXp_WMRC8nTAfilDpyUKnUKW6ZSqN-6ZrFJ7aH35L_CT4sgt0J/pub?output=csv';
 
 async function initializeAI() {
     try {
+        // DITO NATIN SIYA BUBUHAYIN PARA SIGURADONG BULSANG-BULSA NIYA NA YUNG SUSI MULA SA RENDER:
+        genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+
         // Kukunin ng server ang laman ng Google Sheet
         const response = await axios.get(SHEET_CSV_URL);
         const pricingData = response.data;
