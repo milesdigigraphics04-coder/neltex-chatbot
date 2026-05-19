@@ -51,7 +51,7 @@ async function initializeAI() {
 
         // Bubuhayin si Gemini kasama ang bagong data at NAKA-OFF ANG MGA FILTERS
         model = genAI.getGenerativeModel({
-            model: "gemini-2.5-flash",
+            model: "gemini-1.5-flash",
             systemInstruction: systemInstruction,
             safetySettings: [
                 {
