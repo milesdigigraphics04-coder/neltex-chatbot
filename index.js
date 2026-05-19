@@ -3,7 +3,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const axios = require('axios');
 const fs = require('fs');
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } = require("@google/generative-ai");
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -49,10 +49,28 @@ async function initializeAI() {
         Let me know po kung ipapa-process na. Salamat!"
         5. RULE SA HABA NG SAGOT: Keep it conversational pero maikli (1-3 sentences max). Huwag mag-reply ng mala-nobela.`;
 
-        // Bubuhayin si Gemini kasama ang bagong data
+        // Bubuhayin si Gemini kasama ang bagong data at NAKA-OFF ANG MGA FILTERS
         model = genAI.getGenerativeModel({
-            model: "gemini-2.5-flash", // (O gemini-2.5-flash, kung ano man ang napagana mo kanina)
+            model: "gemini-2.5-flash",
             systemInstruction: systemInstruction,
+            safetySettings: [
+                {
+                    category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+                    threshold: HarmBlockThreshold.BLOCK_NONE,
+                },
+                {
+                    category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+                    threshold: HarmBlockThreshold.BLOCK_NONE,
+                },
+                {
+                    category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+                    threshold: HarmBlockThreshold.BLOCK_NONE,
+                },
+                {
+                    category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+                    threshold: HarmBlockThreshold.BLOCK_NONE,
+                },
+            ],
         });
 
         console.log("✅ Google Sheets Pricing Data loaded successfully!");
