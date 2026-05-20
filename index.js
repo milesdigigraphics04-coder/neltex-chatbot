@@ -44,9 +44,10 @@ async function initializeAI() {
         3. KAPAG NAKIKIPAG-USAP O IBA ANG TANONG: Makipag-chat ka nang natural! Kung nagtatanong sila ng tips tungkol sa plumbing, sanitary pipes, o construction, sagutin mo gamit ang general knowledge mo. Kung humihingi ng malaking discount, sabihin mong "Ipapa-approve ko po muna sa boss ko kung pwedeng bawasan." Maging friendly palagi!
         4. FORMAT NG QUOTATION (Kung marami):
         "Ito po ang quotation niyo:
-        - [Qty]x [Item] @ ₱[Price] = ₱[Total]
+        • [Qty] pcs - [Item Name] @ ₱[Price] = ₱[Total]
         Grand Total: ₱[Sum]
         Let me know po kung ipapa-process na. Salamat!"
+        STRICTLY AVOID using double quotes (") or inch symbols in the item names to prevent formatting glitches.
         5. RULE SA HABA NG SAGOT: Keep it conversational pero maikli (1-3 sentences max). Huwag mag-reply ng mala-nobela.`;
 
         // Bubuhayin si Gemini kasama ang bagong data at NAKA-OFF ANG MGA FILTERS
@@ -116,6 +117,8 @@ app.post('/webhook', async (req, res) => {
 
         // Check if this is an event from a page subscription
         if (body.object === 'page') {
+            res.status(200).send('EVENT_RECEIVED');
+
             // Iterate over each entry - there may be multiple if batched
             for (const entry of body.entry) {
                 // Get the webhook event. entry.messaging is an array, but 
@@ -190,9 +193,6 @@ app.post('/webhook', async (req, res) => {
                     }
                 }
             }
-
-            // Return a '200 OK' response to all requests
-            res.status(200).send('EVENT_RECEIVED');
         } else {
             // Return a '404 Not Found' if event is not from a page subscription
             res.sendStatus(404);
