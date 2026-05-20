@@ -44,8 +44,7 @@ async function initializeAI() {
         3. QUOTATION FORMAT: Kapag naglilista, gawin itong malinis. HUWAG gagamit ng double quotes (") o inch symbols. Sundan ang format na ito:
         • [Qty] pcs - [Item Name] @ ₱[Discounted Price] = ₱[Total]
         4. KAPAG IBA ANG TANONG: Makipag-chat ka nang natural at helpful.
-        5. HABA NG SAGOT: Keep it conversational (1-3 sentences max).
-        6. KAPAG MARAMING PAGPIPILIAN (CRITICAL): Kapag naghanap ang customer ng item na may napakaraming variant (halimbawa: "2 inch elbow" na may Powerguard, Waterline, Saniguard), HUWAG mong ilista lahat ng presyo dahil mapuputol ang message mo sa Facebook. Sa halip, ibigay lang ang presyo ng 1 o 2 best-sellers at tanungin ang customer kung anong specific variant ang hanap nila.`;
+        5. KAPAG MARAMING PAGPIPILIAN (CRITICAL): Kapag naghanap ang customer ng item na may napakaraming variant (halimbawa: "2 inch elbow" na may Powerguard, Waterline, Saniguard), HUWAG mong ilista lahat ng presyo dahil mapuputol ang message mo sa Facebook. Sa halip, ibigay lang ang presyo ng 1 o 2 best-sellers at tanungin ang customer kung anong specific variant ang hanap nila.`;
 
         // Bubuhayin si Gemini kasama ang bagong data at NAKA-OFF ANG MGA FILTERS
         model = genAI.getGenerativeModel({
@@ -200,31 +199,32 @@ app.post('/webhook', async (req, res) => {
     }
 });
 
-// Helper function to send messages back to the user via Facebook Graph API (May Chunking na!)
+// Helper function to send messages back to the user via Facebook Graph API
 async function sendMessage(sender_psid, response_text) {
     const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
-    const MAX_LENGTH = 1900; // Ginawa nating 1900 para safe sa 2000 limit ni Facebook
-
-    // Hatiin ang mahabang text sa chunks
-    const chunks = [];
-    for (let i = 0; i < response_text.length; i += MAX_LENGTH) {
-        chunks.push(response_text.substring(i, i + MAX_LENGTH));
+    
+    // Hahatiin natin yung message kung sobrang haba (limit ng FB ay 2000)
+    // Gawin nating safe sa 1900 characters per chat bubble
+    const chunkSize = 1900;
+    const messages = [];
+    
+    for (let i = 0; i < response_text.length; i += chunkSize) {
+        messages.push(response_text.substring(i, i + chunkSize));
     }
 
-    // I-send ang bawat chunk nang sunod-sunod
-    for (const chunk of chunks) {
+    // Ipadala ang mga hinating messages nang sunod-sunod
+    for (const msgChunk of messages) {
         const request_body = {
-            recipient: {
-                id: sender_psid
-            },
-            message: {
-                text: chunk
-            }
+            recipient: { id: sender_psid },
+            message: { text: msgChunk }
         };
 
         try {
             await axios.post(`https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`, request_body);
             console.log('Message chunk sent successfully!');
+            
+            // Maglagay ng kalahating segundong delay para hindi ma-spam si Facebook
+            await new Promise(resolve => setTimeout(resolve, 500)); 
         } catch (error) {
             console.error('Unable to send message:', error.response ? error.response.data : error.message);
         }
