@@ -207,20 +207,42 @@ app.post('/webhook', async (req, res) => {
 // Helper function to send messages back to the user via Facebook Graph API
 async function sendMessage(sender_psid, response_text) {
     const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
-    const request_body = {
-        recipient: {
-            id: sender_psid
-        },
-        message: {
-            text: response_text
-        }
-    };
+    
+    // Facebook has a strict 2000-character limit. 
+    // Hahatiin natin ang mensahe by "line" (enter) para hindi maputol sa gitna ng salita.
+    const maxChars = 1900; 
+    const lines = response_text.split('\n');
+    const messages = [];
+    let currentMessage = "";
 
-    try {
-        await axios.post(`https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`, request_body);
-        console.log('Message sent successfully!');
-    } catch (error) {
-        console.error('Unable to send message:', error.response ? error.response.data : error.message);
+    for (const line of lines) {
+        if ((currentMessage.length + line.length + 1) > maxChars) {
+            messages.push(currentMessage);
+            currentMessage = line + '\n';
+        } else {
+            currentMessage += line + '\n';
+        }
+    }
+    if (currentMessage.trim().length > 0) {
+        messages.push(currentMessage);
+    }
+
+    // Ipadala ang mga messages nang sunod-sunod kay customer
+    for (const msgChunk of messages) {
+        const request_body = {
+            recipient: { id: sender_psid },
+            message: { text: msgChunk.trim() }
+        };
+
+        try {
+            await axios.post(`https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`, request_body);
+            console.log('Message chunk sent successfully!');
+            
+            // Maghintay ng 1 second (1000ms) bago ipadala ang susunod na part para hindi magulo ang pagkakasunod-sunod
+            await new Promise(resolve => setTimeout(resolve, 1000)); 
+        } catch (error) {
+            console.error('Unable to send message chunk:', error.response ? error.response.data : error.message);
+        }
     }
 }
 
