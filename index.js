@@ -200,23 +200,34 @@ app.post('/webhook', async (req, res) => {
     }
 });
 
-// Helper function to send messages back to the user via Facebook Graph API
+// Helper function to send messages back to the user via Facebook Graph API (May Chunking na!)
 async function sendMessage(sender_psid, response_text) {
     const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
-    const request_body = {
-        recipient: {
-            id: sender_psid
-        },
-        message: {
-            text: response_text
-        }
-    };
+    const MAX_LENGTH = 1900; // Ginawa nating 1900 para safe sa 2000 limit ni Facebook
 
-    try {
-        await axios.post(`https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`, request_body);
-        console.log('Message sent successfully!');
-    } catch (error) {
-        console.error('Unable to send message:', error.response ? error.response.data : error.message);
+    // Hatiin ang mahabang text sa chunks
+    const chunks = [];
+    for (let i = 0; i < response_text.length; i += MAX_LENGTH) {
+        chunks.push(response_text.substring(i, i + MAX_LENGTH));
+    }
+
+    // I-send ang bawat chunk nang sunod-sunod
+    for (const chunk of chunks) {
+        const request_body = {
+            recipient: {
+                id: sender_psid
+            },
+            message: {
+                text: chunk
+            }
+        };
+
+        try {
+            await axios.post(`https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`, request_body);
+            console.log('Message chunk sent successfully!');
+        } catch (error) {
+            console.error('Unable to send message:', error.response ? error.response.data : error.message);
+        }
     }
 }
 
