@@ -33,19 +33,23 @@ async function initializeAI() {
         const response = await axios.get(SHEET_CSV_URL);
         const pricingData = response.data;
 
-        const systemInstruction = `Ikaw ay isang magalang, ma-diskarte, at helpful na sales representative. Sumagot palagi sa maikli, direct-to-the-point na Taglish. Ang goal mo ay makabenta at magbigay ng magandang customer service.
+        const systemInstruction = `Ikaw ay isang magalang at helpful na sales representative. 
         
         PRICELIST DATABASE:
         ${pricingData}
         
         MGA DAPAT MONG SUNDIN:
-        1. TONE: Gumamit ng "po" para magalang, pero HUWAG gumamit ng "opo" sa dulo ng pangungusap. Maging natural.
-        2. 5% DISCOUNT: LAHAT ng items ay may awtomatikong 5% discount! Bawasan ng 5% ang original price (Original Price x 0.95 = Discounted Price). Ipaalam nang masaya sa customer na may 5% discount sila.
-        3. QUOTATION FORMAT: Kapag naglilista, gawin itong malinis. HUWAG gagamit ng double quotes (") o inch symbols. Sundan ang format na ito:
+        1. 5% DISCOUNT: Awtomatikong bawasan ng 5% ang original price ng lahat ng items (Original Price x 0.95). 
+        2. PAGLILISTA NG QUOTATION (CRITICAL): Kapag nag-send ng listahan o picture ang customer, ILISTA MO ANG LAHAT NG ITEMS NANG BUO. HUWAG mong puputulin o gagamitan ng "...". Ibigay ang buong quotation sa iisang mensahe.
+        3. QUOTATION FORMAT: Gawing malinis. HUWAG gagamit ng double quotes (") sa mga item names.
+        
+        Sundan ang format na ito:
         • [Qty] pcs - [Item Name] @ ₱[Discounted Price] = ₱[Total]
-        4. PAGLILISTA NG QUOTATION (CRITICAL RULE): Kapag nagpapagawa ng quotation ang customer mula sa listahan o picture, ILISTA MO ANG LAHAT NG ITEMS KUNG ANO ANG NASA PICTURE. HUWAG mong puputulin. HUWAG kang gagamit ng "..." para paikliin. Isulat mo lahat ng items sa quotation isa-isa kahit gaano pa ito kahaba.
-        5. KAPAG IBA ANG TANONG (Hindi nagpapa-quote): Keep it conversational (1-3 sentences max). Makipag-chat ka nang natural at helpful.
-        6. KAPAG MARAMING PAGPIPILIAN: Kapag naghanap ang customer ng item na may napakaraming variant (halimbawa: "2 inch elbow"), ibigay lang ang presyo ng 1 o 2 best-sellers at tanungin ang customer kung anong specific variant ang hanap nila.`;
+        
+        Grand Total: ₱[Sum]
+        (May 5% discount na po ito! Let me know po kung ipapa-process na. Salamat!)
+        
+        4. CHITCHAT: Kung nagtatanong lang at HINDI nagpapa-quote, sumagot nang maikli at natural.`;
 
         // Bubuhayin si Gemini kasama ang bagong data at NAKA-OFF ANG MGA FILTERS
         model = genAI.getGenerativeModel({
@@ -203,32 +207,20 @@ app.post('/webhook', async (req, res) => {
 // Helper function to send messages back to the user via Facebook Graph API
 async function sendMessage(sender_psid, response_text) {
     const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN;
-    
-    // Hahatiin natin yung message kung sobrang haba (limit ng FB ay 2000)
-    // Gawin nating safe sa 1900 characters per chat bubble
-    const chunkSize = 1900;
-    const messages = [];
-    
-    for (let i = 0; i < response_text.length; i += chunkSize) {
-        messages.push(response_text.substring(i, i + chunkSize));
-    }
-
-    // Ipadala ang mga hinating messages nang sunod-sunod
-    for (const msgChunk of messages) {
-        const request_body = {
-            recipient: { id: sender_psid },
-            message: { text: msgChunk }
-        };
-
-        try {
-            await axios.post(`https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`, request_body);
-            console.log('Message chunk sent successfully!');
-            
-            // Maglagay ng kalahating segundong delay para hindi ma-spam si Facebook
-            await new Promise(resolve => setTimeout(resolve, 500)); 
-        } catch (error) {
-            console.error('Unable to send message:', error.response ? error.response.data : error.message);
+    const request_body = {
+        recipient: {
+            id: sender_psid
+        },
+        message: {
+            text: response_text
         }
+    };
+
+    try {
+        await axios.post(`https://graph.facebook.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`, request_body);
+        console.log('Message sent successfully!');
+    } catch (error) {
+        console.error('Unable to send message:', error.response ? error.response.data : error.message);
     }
 }
 
